@@ -1,6 +1,7 @@
 export * from './types';
 export * from './labels';
 export * from './supabaseClient';
+export * from './Credits';
 export * from './auth';
 export * from './addressSearch';
 export * from './useMe';

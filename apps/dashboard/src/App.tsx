@@ -5,6 +5,7 @@ import {
   useShifts,
   useDeliveries,
   useRoutes,
+  Credits,
   type Me,
   type ShiftWithCourier,
 } from '@delivery/shared';
@@ -163,6 +164,8 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
           <ShiftsList shifts={shifts} loading={shiftsLoading} onChanged={refetchShifts} />
         </>
       )}
+
+      <Credits />
     </div>
   );
 }

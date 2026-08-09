@@ -4,6 +4,7 @@ import {
   useMe,
   useShifts,
   useRoutes,
+  Credits,
   type Me,
   type ShiftWithBusiness,
 } from '@delivery/shared';
@@ -76,6 +77,8 @@ function CourierHome({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
       ) : (
         <ShiftInvites shifts={shifts} loading={loading} onChanged={refetch} />
       )}
+
+      <Credits />
     </div>
   );
 }
