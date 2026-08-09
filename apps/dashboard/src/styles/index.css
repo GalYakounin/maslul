@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-primary: #f97316; /* כתום — חום האוכל, פעולה ראשית */
+  --color-primary-dark: #ea580c;
+  --color-secondary: #3b82f6; /* כחול — אוכל שהתקרר */
+  --color-danger: #dc2626;
+  --color-bg: #f9fafb;
+  --color-surface: #ffffff;
+  --color-text: #111827;
+  --color-text-muted: #6b7280;
+  --color-border: #e5e7eb;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+}
+
+input,
+select,
+textarea {
+  font-size: 16px; /* מונע זום אוטומטי ב-iOS */
+}
