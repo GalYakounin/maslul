@@ -147,7 +147,12 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
             onCreated={refreshAll}
           />
           {liveRoutes.map((route) => (
-            <RouteCard key={route.route_id} route={route} onChanged={refreshAll} />
+            <RouteCard
+              key={route.route_id}
+              route={route}
+              deliveries={deliveries}
+              onChanged={refreshAll}
+            />
           ))}
         </>
       )}

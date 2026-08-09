@@ -4,6 +4,7 @@ import {
   translateDbError,
   DELIVERY_STATUS_LABELS,
   ROUTE_STATUS_LABELS,
+  type Delivery,
   type RouteWithStops,
 } from '@delivery/shared';
 import { supabase } from '../../lib/supabase';
@@ -11,12 +12,31 @@ import { supabase } from '../../lib/supabase';
 // כרטיס מסלול. ניתן לעריכה **רק בטיוטה** — ברגע שנשלח לשליח הוא קופא.
 // זה נובע ישירות מהאילוץ העסקי: אצווה שיצאה היא סגורה, ואין ניתוב
 // מחדש תוך כדי נסיעה. מי שמציע לערוך מסלול משוגר סותר את הבסיס.
+//
+// מצב המשלוחים נקרא מהרשימה החיה של הדשבורד ולא מהעותק המשובץ
+// בשאילתת המסלול. הסיבה: מנוי Realtime על `routes` אינו מקבל אירוע
+// כששורה ב-`deliveries` משתנה — וכשהשליח מסמן "נמסר" זה בדיוק מה
+// שקורה. שני עותקים של אותו נתון היו מתפצלים, והכפתור "סגירת מסלול"
+// לא היה מופיע עד רענון ידני.
 
-export function RouteCard({ route, onChanged }: { route: RouteWithStops; onChanged: () => void }) {
+export function RouteCard({
+  route,
+  deliveries,
+  onChanged,
+}: {
+  route: RouteWithStops;
+  deliveries: Delivery[];
+  onChanged: () => void;
+}) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
 
-  const stops = sortStops(route.route_stops ?? []);
+  const live = new Map(deliveries.map((d) => [d.delivery_id, d]));
+  const stops = sortStops(route.route_stops ?? []).map((stop) => ({
+    ...stop,
+    deliveries: live.get(stop.delivery_id) ?? stop.deliveries,
+  }));
+
   const editable = route.status === 'draft';
   const deliveryIds = stops.map((s) => s.delivery_id);
   const deliveredCount = stops.filter((s) => s.deliveries?.status === 'delivered').length;
