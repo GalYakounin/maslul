@@ -4,6 +4,7 @@ import {
   useMe,
   useShifts,
   useDeliveries,
+  useRoutes,
   type Me,
   type ShiftWithCourier,
 } from '@delivery/shared';
@@ -16,12 +17,14 @@ import { NewDelivery } from './features/deliveries/NewDelivery';
 import { DeliveriesList } from './features/deliveries/DeliveriesList';
 import { BusinessLocation } from './features/business/BusinessLocation';
 import { DeliveryMap } from './features/map/DeliveryMap';
+import { RouteBuilder } from './features/routes/RouteBuilder';
+import { RouteCard } from './features/routes/RouteCard';
 
 // קבוע ברמת המודול — המחרוזת נכנסת לרשימת התלויות של useShifts, ואילו
 // נבנתה מחדש בכל render היא הייתה מפילה ובונה את מנוי ה-Realtime בלולאה.
 const SHIFTS_SELECT = '*, couriers(courier_id, name, phone, vehicle_type)';
 
-type Tab = 'deliveries' | 'map' | 'shifts';
+type Tab = 'deliveries' | 'map' | 'routes' | 'shifts';
 
 export default function App() {
   const { session, loading, signOut } = useAuth();
@@ -72,6 +75,18 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
     refetch: refetchDeliveries,
   } = useDeliveries(supabase, businessId);
 
+  const { routes, refetch: refetchRoutes } = useRoutes(supabase, 'business_id', businessId);
+
+  // מסלול שהסתיים או בוטל יורד מהמסך — הוא נשמר ב-DB להיסטוריה.
+  const liveRoutes = routes.filter(
+    (r) => r.status === 'draft' || r.status === 'offered' || r.status === 'dispatched'
+  );
+
+  function refreshAll() {
+    refetchRoutes();
+    refetchDeliveries();
+  }
+
   const needsLocation = business.lat === null && !locationSaved;
 
   // מונה על לשונית המפה — משלוח בלי מיקום נעלם מהעין ברשימה, ואז
@@ -100,6 +115,9 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
         <TabButton active={tab === 'map'} onClick={() => setTab('map')}>
           מפה{unplaced > 0 ? ` (${unplaced})` : ''}
         </TabButton>
+        <TabButton active={tab === 'routes'} onClick={() => setTab('routes')}>
+          מסלולים{liveRoutes.length > 0 ? ` (${liveRoutes.length})` : ''}
+        </TabButton>
         <TabButton active={tab === 'shifts'} onClick={() => setTab('shifts')}>
           שליחים
         </TabButton>
@@ -118,6 +136,20 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
 
       {tab === 'map' && (
         <DeliveryMap business={business} deliveries={deliveries} onChanged={refetchDeliveries} />
+      )}
+
+      {tab === 'routes' && (
+        <>
+          <RouteBuilder
+            business={business}
+            deliveries={deliveries}
+            shifts={shifts}
+            onCreated={refreshAll}
+          />
+          {liveRoutes.map((route) => (
+            <RouteCard key={route.route_id} route={route} onChanged={refreshAll} />
+          ))}
+        </>
       )}
 
       {tab === 'shifts' && (

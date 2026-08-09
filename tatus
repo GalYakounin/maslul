@@ -1,0 +1,28 @@
+[33mcommit 5bdf4f0eefd09a01446edbfc77cfe3adabebd5e8[m
+Author: GalYakounin <galyakounin@gmail.com>
+Date:   Sun Aug 9 12:14:00 2026 +0300
+
+    שלב 3: מפה ונעיצה ידנית
+    
+    Leaflet רגיל, בלי react-leaflet — מפה, סיכות וקליק לא מצדיקים עטיפה
+    נוספת. סמלי ברירת המחדל של Leaflet הוחלפו ב-divIcon עם טוקני הצבע
+    שלנו: נתיבי התמונות שלהם נשברים תחת bundler, וכך גם אפשר לקודד
+    משמעות בצבע.
+    
+    נעיצה ידנית היא העיקר, לא התצוגה: 18% מכתובות באר שבע הגיעו במקור
+    בלי קואורדינטות, ובלעדיה הן לעולם לא ייכנסו למסלול.
+    
+    הופרדו משמעויות geocode_status: ok = מדויק מהמאגר, pending = מרכז
+    רחוב הממתין לאדם, manual = אדם נעץ, failed = אין נקודה.
+    
+    טרם עבר בדיקת קבלה על מסלול הנעיצה.
+    
+    Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>
+
+ apps/dashboard/package.json                        |   2 [32m+[m
+ apps/dashboard/src/App.tsx                         |  24 [32m++[m[31m-[m
+ .../src/features/deliveries/DeliveriesList.tsx     |   5 [32m+[m[31m-[m
+ .../src/features/deliveries/NewDelivery.tsx        |   9 [32m+[m[31m-[m
+ apps/dashboard/src/features/map/DeliveryMap.tsx    | 209 [32m+++++++++++++++++++++[m
+ package-lock.json                                  |  25 [32m+++[m
+ 6 files changed, 266 insertions(+), 8 deletions(-)

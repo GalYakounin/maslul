@@ -1,9 +1,17 @@
 import { useState } from 'react';
-import { useAuth, useMe, useShifts, type Me, type ShiftWithBusiness } from '@delivery/shared';
+import {
+  useAuth,
+  useMe,
+  useShifts,
+  useRoutes,
+  type Me,
+  type ShiftWithBusiness,
+} from '@delivery/shared';
 import { supabase } from './lib/supabase';
 import { Login } from './features/auth/Login';
 import { SignUp } from './features/auth/SignUp';
 import { ShiftInvites } from './features/shifts/ShiftInvites';
+import { MyRoute } from './features/routes/MyRoute';
 
 // ראו הערה מקבילה ב-App.tsx של הדשבורד: המחרוזת חייבת להיות יציבה.
 const SHIFTS_SELECT = '*, businesses(business_id, name, address, phone)';
@@ -47,6 +55,15 @@ function CourierHome({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
     value: me.courier?.courier_id,
   });
 
+  const { routes, refetch: refetchRoutes } = useRoutes(
+    supabase,
+    'courier_id',
+    me.courier?.courier_id
+  );
+
+  // מסלול חי אחד לכל היותר — אצווה סגורה, שליח אחד, יציאה אחת.
+  const activeRoute = routes.find((r) => r.status === 'offered' || r.status === 'dispatched');
+
   return (
     <div className="mx-auto max-w-md space-y-5 p-5">
       <header className="flex items-center justify-between gap-3">
@@ -54,7 +71,11 @@ function CourierHome({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
         <SignOutButton onClick={onSignOut} />
       </header>
 
-      <ShiftInvites shifts={shifts} loading={loading} onChanged={refetch} />
+      {activeRoute ? (
+        <MyRoute route={activeRoute} onChanged={refetchRoutes} />
+      ) : (
+        <ShiftInvites shifts={shifts} loading={loading} onChanged={refetch} />
+      )}
     </div>
   );
 }

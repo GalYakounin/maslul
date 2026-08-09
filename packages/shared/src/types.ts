@@ -109,6 +109,17 @@ export interface RouteStop {
   eta: ISODateString | null;
 }
 
+// צורות ה-embed של מסלול. `route_stops` מגיעות עם המשלוח המקושר,
+// כי בלי הכתובת אין מה להציג — והסדר (`sequence`) הוא כל המוצר.
+export interface RouteStopWithDelivery extends RouteStop {
+  deliveries: Delivery | null;
+}
+
+export interface RouteWithStops extends Route {
+  route_stops: RouteStopWithDelivery[];
+  couriers: Pick<Courier, 'courier_id' | 'name' | 'phone'> | null;
+}
+
 // ═══════════════ RPCs ═══════════════
 
 export type UserRole = 'business' | 'courier' | null;
