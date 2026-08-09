@@ -81,9 +81,10 @@ export function DeliveriesList({
                   {DELIVERY_STATUS_LABELS[delivery.status]}
                 </p>
 
-                {delivery.lat === null && (
+                {(delivery.lat === null || delivery.geocode_status === 'pending') && (
                   <p className="mt-1 text-sm text-danger">
-                    ללא מיקום על המפה — לא ייכנס לחישוב מסלול עד שייקבע מיקום.
+                    {delivery.lat === null ? 'ללא מיקום על המפה' : 'מיקום מקורב'} — נעצו אותו
+                    בלשונית המפה כדי שייכנס לחישוב מסלול.
                   </p>
                 )}
               </div>

@@ -92,9 +92,12 @@ export function NewDelivery({ businessId, onCreated }: { businessId: string; onC
       order_details: form.orderDetails || null,
       lat: coords?.lat ?? null,
       lng: coords?.lng ?? null,
-      // 'ok' רק כשיש מספר בית. מרכז רחוב נשמר כ-'manual' — הקואורדינטה
-      // קיימת אבל מחכה לדיוק ידני, ואסור שתיחשב מאומתת.
-      geocode_status: precision === 'exact' ? 'ok' : precision === 'street' ? 'manual' : 'failed',
+      // משמעות הערכים, ושווה לשמור על ההפרדה הזו:
+      //   ok      — מדויק לבניין, מהמאגר
+      //   pending — מרכז רחוב. יש נקודה, אבל היא ממתינה לאדם
+      //   manual  — אדם נעץ אותה על המפה. אמין
+      //   failed  — אין נקודה כלל
+      geocode_status: precision === 'exact' ? 'ok' : precision === 'street' ? 'pending' : 'failed',
       price_agorot: Number.isFinite(priceAgorot) ? priceAgorot : 0,
       payment_method: payment,
     });
