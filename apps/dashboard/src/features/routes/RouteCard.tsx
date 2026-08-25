@@ -285,11 +285,25 @@ export function RouteCard({
 
       {optimized && (
         <div className="mt-2 rounded-lg border border-border p-2 text-sm">
+          {/* שתי הצגות לאותו מספר, ובכוונה. הסכום הוא מה שהאלגוריתם
+              ממזער, אבל לקוח לא חווה סכום — הוא חווה את ההמתנה שלו.
+              הצגת הסכום לבדו נקראת כמשך הנסיעה ומנפחת את ההישג. */}
           <p>
-            {optimized.savedSeconds >= 30
-              ? `הסדר עודכן. חיסכון משוער: ${Math.round(optimized.savedSeconds / 60)} דקות המתנה בסך הכל.`
-              : 'הסדר שהיה כבר היה הטוב ביותר — לא היה מה לשפר.'}
+            {optimized.savedSeconds >= 30 ? (
+              <>
+                הסדר עודכן. הלקוחות ימתינו פחות ב-
+                <strong>{Math.round(optimized.savedSeconds / 60)} דקות</strong> בסך הכל —
+                כ-{Math.round(optimized.savedSeconds / 60 / stops.length)} דקות פחות לכל לקוח.
+              </>
+            ) : (
+              'הסדר שהיה כבר היה הטוב ביותר — לא היה מה לשפר.'
+            )}
           </p>
+          {optimized.savedSeconds >= 30 && (
+            <p className="mt-1 text-text-muted">
+              משך הנסיעה עצמו כמעט לא משתנה. מה שהשתנה הוא הסדר, ולכן מי מחכה וכמה.
+            </p>
+          )}
           {/* הערכה שמוצגת כנתון אמיתי היא אותו כשל של קואורדינטה
               שגויה בשקט. אם לא הגיע נתון נסיעה — אומרים את זה. */}
           {optimized.source === 'estimate' && (
