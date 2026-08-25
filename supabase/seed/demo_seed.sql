@@ -182,5 +182,30 @@ begin
   where d.business_id = v_business
     and d.customer_phone in ('0500000111', '0500000112');
 
+  -- ═══════════════ מסלול טיוטה — כאן רואים את שלב 6 ═══════════════
+  -- כפתור "חשב סדר אופטימלי" מופיע רק בטיוטה, כי מסלול משוגר קופא.
+  -- בלי טיוטה בזרע, מבקר שנכנס לתשעים שניות לא יראה את הפיצ'ר
+  -- המרכזי של הפרויקט בכלל.
+  --
+  -- הסדר ההתחלתי הוא **מהרחוק לקרוב במכוון** — הסדר הגרוע ביותר
+  -- למינימום המתנה. הוא גורר את השליח לקצה ומשאיר שניים לחכות
+  -- לחזרתו, כך שהלחיצה על הכפתור מייצרת שיפור נראה לעין במקום
+  -- "הסדר שהיה כבר היה הטוב ביותר".
+  insert into routes (business_id, courier_id, status, created_at)
+  values (v_business, v_courier, 'draft', v_now - interval '4 minutes')
+  returning route_id into v_route;
+
+  insert into route_stops (route_id, delivery_id, sequence)
+  select v_route, d.delivery_id, 1
+  from deliveries d
+  where d.business_id = v_business and d.customer_phone = '0500000107';
+  insert into route_stops (route_id, delivery_id, sequence)
+  select v_route, d.delivery_id, 2
+  from deliveries d
+  where d.business_id = v_business and d.customer_phone = '0500000105';
+  insert into route_stops (route_id, delivery_id, sequence)
+  select v_route, d.delivery_id, 3
+  from deliveries d
+  where d.business_id = v_business and d.customer_phone = '0500000106';
   raise notice 'נתוני הדמו נטענו לעסק %', v_business;
 end $$;

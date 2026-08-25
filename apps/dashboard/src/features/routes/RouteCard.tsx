@@ -198,7 +198,16 @@ export function RouteCard({
         .in('delivery_id', deliveryIds);
     });
 
-  // ביטול מחזיר את המשלוחים למאגר הפנוי, אחרת הם נעולים לנצח.
+  // ביטול מחזיר את המשלוחים למאגר הפנוי.
+  //
+  // **מחיקת ה-route_stops היא החלק הקריטי, ולא ניקיון.** ל-
+  // route_stops.delivery_id יש אילוץ ייחודיות *גלובלי*: משלוח שייך
+  // למסלול אחד לכל היותר, אי פעם. אם השורות נשארות, המשלוח לא יוכל
+  // להיכנס לשום מסלול אחר לעולם — גם אחרי שהמסלול בוטל. הגרסה
+  // הראשונה כאן עדכנה סטטוסים בלבד והשאירה אותם נעולים.
+  //
+  // שורת ה-routes נשארת עם status='cancelled' לצורך היסטוריה; רק
+  // העצירות נמחקות.
   const cancel = () =>
     run(async () => {
       const routeUpdate = await supabase
@@ -206,6 +215,12 @@ export function RouteCard({
         .update({ status: 'cancelled' })
         .eq('route_id', route.route_id);
       if (routeUpdate.error) return { error: routeUpdate.error };
+
+      const stopsDelete = await supabase
+        .from('route_stops')
+        .delete()
+        .eq('route_id', route.route_id);
+      if (stopsDelete.error) return { error: stopsDelete.error };
 
       return await supabase
         .from('deliveries')

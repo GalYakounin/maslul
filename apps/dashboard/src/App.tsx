@@ -144,6 +144,7 @@ function Dashboard({ me, onSignOut }: { me: Me; onSignOut: () => void }) {
           <RouteBuilder
             business={business}
             deliveries={deliveries}
+            routes={liveRoutes}
             shifts={shifts}
             onCreated={refreshAll}
           />

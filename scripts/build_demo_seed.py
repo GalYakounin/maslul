@@ -283,7 +283,8 @@ begin
             f", v_now - interval '{delivered} minutes'" if delivered else "")
         w(delivery(i, status, ready, cols, vals))
 
-    # 4-7: פתוחים ומוכנים
+    # 4-6: מוכנים, ומשובצים למסלול *טיוטה* למטה
+    # 7: מוכן ופנוי, כדי שבונה-המסלולים לא יהיה ריק
     for i, ready in [(4, 14), (5, 11), (6, 7), (7, 4)]:
         w(delivery(i, "ready", ready))
 
@@ -304,6 +305,27 @@ begin
     # מתפרק ברגע שמישהו ילחץ "נמסר" בדמו.
     active = ", ".join(q(CUSTOMERS[i][1]) for i in (0, 1, 2, 3))
     history = ", ".join(q(CUSTOMERS[i][1]) for i in (10, 11))
+
+    # ═══ מסלול הטיוטה — הוא קיים כדי שהדמו יראה את שלב 6 ═══
+    # כפתור "חשב סדר אופטימלי" מופיע רק בטיוטה, כי מסלול משוגר קופא.
+    # בלי טיוטה בזרע, מבקר שנכנס לתשעים שניות לא יראה את הפיצ'ר
+    # המרכזי של הפרויקט בכלל.
+    #
+    # הסדר ההתחלתי נקבע **מהרחוק לקרוב במכוון**. זה הסדר הגרוע ביותר
+    # למינימום המתנה: הוא גורר את השליח לקצה ומשאיר שני לקוחות
+    # לחכות לחזרה. כך הלחיצה על הכפתור מייצרת שיפור נראה לעין
+    # במקום "לא היה מה לשפר".
+    draft_order = sorted(
+        (4, 5, 6),
+        key=lambda i: -haversine_km(depot["lat"], depot["lng"], picked[i]["lat"], picked[i]["lng"]),
+    )
+    draft_stops = "\n".join(
+        "  insert into route_stops (route_id, delivery_id, sequence)\n"
+        f"  select v_route, d.delivery_id, {seq}\n"
+        "  from deliveries d\n"
+        f"  where d.business_id = v_business and d.customer_phone = {q(CUSTOMERS[i][1])};"
+        for seq, i in enumerate(draft_order, start=1)
+    )
 
     w(f"""  -- ═══════════════ מסלול פעיל ═══════════════
   -- הסדר כאן ידני — כפי שבעל העסק היה מסדר בשלב 4. זו נקודת הייחוס
@@ -331,6 +353,20 @@ begin
   where d.business_id = v_business
     and d.customer_phone in ({history});
 
+  -- ═══════════════ מסלול טיוטה — כאן רואים את שלב 6 ═══════════════
+  -- כפתור "חשב סדר אופטימלי" מופיע רק בטיוטה, כי מסלול משוגר קופא.
+  -- בלי טיוטה בזרע, מבקר שנכנס לתשעים שניות לא יראה את הפיצ'ר
+  -- המרכזי של הפרויקט בכלל.
+  --
+  -- הסדר ההתחלתי הוא **מהרחוק לקרוב במכוון** — הסדר הגרוע ביותר
+  -- למינימום המתנה. הוא גורר את השליח לקצה ומשאיר שניים לחכות
+  -- לחזרתו, כך שהלחיצה על הכפתור מייצרת שיפור נראה לעין במקום
+  -- "הסדר שהיה כבר היה הטוב ביותר".
+  insert into routes (business_id, courier_id, status, created_at)
+  values (v_business, v_courier, 'draft', v_now - interval '4 minutes')
+  returning route_id into v_route;
+
+{draft_stops}
   raise notice 'נתוני הדמו נטענו לעסק %', v_business;
 end $$;
 """)

@@ -1,5 +1,11 @@
 import { useState } from 'react';
-import { translateDbError, type Business, type Delivery, type ShiftWithCourier } from '@delivery/shared';
+import {
+  translateDbError,
+  type Business,
+  type Delivery,
+  type RouteWithStops,
+  type ShiftWithCourier,
+} from '@delivery/shared';
 import { supabase } from '../../lib/supabase';
 
 // הרכבת אצווה. **כל יציאה היא אצווה סגורה** — שליח שיצא לא חוזר
@@ -11,11 +17,13 @@ import { supabase } from '../../lib/supabase';
 export function RouteBuilder({
   business,
   deliveries,
+  routes,
   shifts,
   onCreated,
 }: {
   business: Business;
   deliveries: Delivery[];
+  routes: RouteWithStops[];
   shifts: ShiftWithCourier[];
   onCreated: () => void;
 }) {
@@ -24,8 +32,20 @@ export function RouteBuilder({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
-  // מועמדים לאצווה: מוכן או בהכנה, ועדיין לא שובץ למסלול.
-  const candidates = deliveries.filter((d) => d.status === 'new' || d.status === 'ready');
+  // מועמדים לאצווה: מוכן או בהכנה, **ועדיין לא שובץ למסלול חי**.
+  //
+  // הסינון לפי סטטוס בלבד אינו מספיק, וזה לא היה גלוי בשלב 4: שם כל
+  // מסלול שוגר מיד, מה שמעביר את המשלוחים ל-picked_up ומוציא אותם
+  // מהרשימה. משלוח שיושב במסלול *טיוטה* נשאר 'ready' — ונשאר מועמד.
+  // בחירה חוזרת בו נכשלת על אילוץ הייחודיות של route_stops.delivery_id.
+  const assigned = new Set(
+    routes
+      .filter((r) => r.status === 'draft' || r.status === 'offered' || r.status === 'dispatched')
+      .flatMap((r) => (r.route_stops ?? []).map((stop: { delivery_id: string }) => stop.delivery_id))
+  );
+  const candidates = deliveries.filter(
+    (d) => (d.status === 'new' || d.status === 'ready') && !assigned.has(d.delivery_id)
+  );
   const activeCouriers = shifts.filter((s) => s.status === 'active' && s.couriers);
 
   function toggle(id: string) {
