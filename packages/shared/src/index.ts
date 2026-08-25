@@ -1,4 +1,5 @@
 export * from './types';
+export * from './optimize';
 export * from './labels';
 export * from './supabaseClient';
 export * from './Credits';
