@@ -9,7 +9,9 @@
   "scripts": {
     "dashboard": "npm run dev -w apps/dashboard",
     "courier": "npm run dev -w apps/courier",
-    "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w apps/dashboard && npm run typecheck -w apps/courier"
+    "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w apps/dashboard && npm run typecheck -w apps/courier",
+    "build": "npm run build -w apps/dashboard && npm run build -w apps/courier",
+    "seed": "python scripts/build_demo_seed.py"
   },
   "allowScripts": {
     "esbuild@0.21.5": true
