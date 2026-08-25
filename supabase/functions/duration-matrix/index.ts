@@ -18,7 +18,18 @@
 //   npx supabase functions deploy duration-matrix
 //   npx supabase secrets set ORS_API_KEY=...
 
-const ORS_URL = 'https://api.openrouteservice.org/v2/matrix/driving-car';
+// HeiGIT מוציאים משימוש את api.openrouteservice.org לטובת api.heigit.org.
+// הכתובת הישנה עדיין עונה (אומת 08/2026), אבל אין טעם להיפרס על נתיב
+// שמסומן לסגירה. שימו לב שהנתיב **אינו** זהה בין השניים:
+//   ישן:  api.openrouteservice.org/v2/matrix/driving-car
+//   חדש:  api.heigit.org/openrouteservice/v2/matrix/driving-car   ← קידומת
+// ההעברה הנאיבית של רק שם המארח מחזירה 404.
+//
+// ניתן לעקוף בסוד ORS_MATRIX_URL בלי לפרוס מחדש — הם כבר החליפו
+// כתובת פעם אחת, וסביר שזה יקרה שוב.
+const ORS_URL =
+  Deno.env.get('ORS_MATRIX_URL') ??
+  'https://api.heigit.org/openrouteservice/v2/matrix/driving-car';
 
 // ORS אינו מציע פרופיל לאופנוע. driving-car הוא הקירוב הקרוב ביותר,
 // והוא שמרני: אופנוע בעיר מהיר יותר מרכב, לא איטי יותר. הטיה בכיוון
