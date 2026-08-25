@@ -20,8 +20,8 @@ Realtime), Leaflet. Hebrew RTL throughout.
 | **Courier app** (open on a phone) | https://maslul-courier.vercel.app |
 
 ```
-dashboard   demo@maslul.local     / <DEMO_PASSWORD>
-courier     courier@maslul.local  / <DEMO_PASSWORD>
+dashboard   demo@maslul.local     / 123123
+courier     courier@maslul.local  / 123123
 ```
 
 The demo is seeded with twelve deliveries, an active courier shift, and a route
