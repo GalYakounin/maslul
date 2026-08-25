@@ -15,7 +15,9 @@
     "test": "npm run test -w packages/shared",
     "batches": "python scripts/generate_batches.py",
     "measure": "tsx scripts/measure.ts",
-    "measure:sizes": "tsx scripts/measure.ts data/batches_sizes.json docs/baseline_by_size.md"
+    "measure:sizes": "tsx scripts/measure.ts data/batches_sizes.json docs/baseline_by_size.md",
+    "matrices": "tsx scripts/fetch_matrices.ts",
+    "measure:real": "tsx scripts/measure.ts data/batches.json docs/baseline_real.md data/matrices.json"
   },
   "allowScripts": {
     "esbuild@0.21.5": true

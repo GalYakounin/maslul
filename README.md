@@ -100,6 +100,33 @@ And the shortcut is not even cheaper: finding the shortest cycle *is itself*
 TSP — the same 8! = 40,320 permutations. It costs exactly the same and returns
 a worse answer.
 
+### What it actually buys — measured, not asserted
+
+Measured over 150 batches built from real Beer Sheva addresses, using real
+OpenRouteService travel times (`docs/baseline_real.md`):
+
+| Ordering strategy | Mean customer wait | Optimiser's gain |
+|---|---|---|
+| **Minimum latency (optimal)** | **13.8 min** | — |
+| First-ready-first-delivered | 17.4 min | **20.8%** |
+| Nearest-neighbour greedy | 13.9 min | 0.7% |
+
+The honest headline is the middle row: **ordering by minimum latency cuts
+customer wait by about 21% against delivering in the order dishes came out
+of the kitchen** — which is what the product did before this, and what an
+owner does without a tool.
+
+The bottom row is the more interesting result. A twenty-line greedy heuristic
+already picks the exact optimal order in 70% of batches. That is a property of
+batch size, not a flaw in the objective: three stops admit only six orders, and
+greedy's exact-match rate falls to 43% at eight stops. So brute force is still
+worth running — it costs 20 ms and is provably optimal — but the claim that
+survives scrutiny is "beats first-ready-first-out", not "beats human intuition".
+
+Measuring first also caught a smaller error. The same 150 batches scored with
+straight-line distance instead of real routing reported 25.8% rather than 20.8%
+— a five-point overstatement that would have gone straight into this README.
+
 ### Why brute force, deliberately
 
 At n ≤ 8 stops, 40,320 permutations evaluate in about 20 ms and the result is

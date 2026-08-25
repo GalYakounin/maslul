@@ -10,7 +10,7 @@
 //
 // שימוש:  npm run measure
 
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { dirname } from 'node:path';
 import {
   bestOrder,
@@ -19,13 +19,16 @@ import {
   nearestNeighbourOrder,
   randomOrder,
   totalWait,
+  type DurationMatrix,
   type Point,
 } from '../packages/shared/src/optimize';
 
-// npm run measure              → המערך הריאלי (אצוות 3-5)
-// npm run measure -- <in> <out> → מערך אחר, למשל ניתוח הרגישות לגודל
+// npm run measure                    → מרחק אווירי (ברירת מחדל)
+// npm run measure:real                → מטריצות ORS אמיתיות מהמטמון
+// npm run measure -- <in> <out> [mat] → מערך אחר, למשל רגישות לגודל
 const IN_PATH = process.argv[2] ?? 'data/batches.json';
 const OUT_PATH = process.argv[3] ?? 'docs/baseline.md';
+const MATRIX_PATH = process.argv[4]; // אופציונלי — מטמון מטריצות אמיתיות
 
 interface Stop extends Point {
   label: string;
@@ -80,9 +83,33 @@ function main() {
   const rng = makeRng(data.seed);
   const rows: Row[] = [];
 
+  // מטמון מטריצות אמיתיות, אם סופק. אצוות שאינן בו נדלגות במקום
+  // להתערבב עם הערכות — תערובת של שני מקורות זמן באותו דוח מייצרת
+  // מספר שאי אפשר לפרש.
+  let cache: Record<string, { durations: DurationMatrix; source: string }> | null = null;
+  if (MATRIX_PATH) {
+    if (!existsSync(MATRIX_PATH)) {
+      console.error(`לא נמצא ${MATRIX_PATH}. הריצו קודם: npm run matrices`);
+      process.exit(1);
+    }
+    cache = JSON.parse(readFileSync(MATRIX_PATH, 'utf-8')).entries;
+  }
+
+  let skipped = 0;
   for (const batch of data.batches) {
     const points: Point[] = [data.restaurant, ...batch.stops];
-    const m = haversineMatrix(points);
+
+    let m: DurationMatrix;
+    if (cache) {
+      const hit = cache[batch.id];
+      if (!hit || hit.source !== 'provider') {
+        skipped++;
+        continue;
+      }
+      m = hit.durations;
+    } else {
+      m = haversineMatrix(points);
+    }
     // אינדקס 0 הוא המסעדה ואין לה readyOffset; מיישרים כדי שהאינדקסים
     // של המטריצה ושל ההיסטים יהיו אותם אינדקסים.
     const offsets = [0, ...batch.stops.map((s) => s.readyOffsetSeconds)];
@@ -107,6 +134,11 @@ function main() {
     rows.push({ kind: batch.kind, stops: n, wait, sameOrder });
   }
 
+  if (cache) {
+    console.log(`${rows.length} אצוות עם מטריצה אמיתית, ${skipped} דולגו.
+`);
+  }
+
   const report = buildReport(data, rows);
   mkdirSync(dirname(OUT_PATH), { recursive: true });
   writeFileSync(OUT_PATH, report, 'utf-8');
@@ -123,7 +155,11 @@ function buildReport(data: Dataset, rows: Row[]): string {
   ];
 
   const out: string[] = [];
-  out.push('# קו בסיס — סדר ידני מול מינימום המתנה');
+  out.push(
+    MATRIX_PATH
+      ? '# קו בסיס — סדר ידני מול מינימום המתנה (זמני נסיעה אמיתיים)'
+      : '# קו בסיס — סדר ידני מול מינימום המתנה'
+  );
   out.push('');
   out.push('> **נוצר אוטומטית על ידי `npm run measure`. אל תערכו ידנית.**');
   out.push('>');
@@ -222,11 +258,17 @@ function buildReport(data: Dataset, rows: Row[]): string {
   out.push('');
   out.push('## הסתייגויות');
   out.push('');
-  out.push('**זמני הנסיעה כאן הם מרחק אווירי כפול 1.3, לא ניתוב אמיתי.**');
-  out.push('קירוב אחיד אינו מתקן את הכשל האמיתי של מרחק אווירי: מסילה או');
-  out.push('כביש מהיר בין שתי נקודות ספציפיות. שלב 6 יחליף את המטריצה');
-  out.push('ב-OpenRouteService, והמספרים כאן יתעדכנו. הכיוון לא צפוי');
-  out.push('להתהפך, אבל הגודל בהחלט עשוי לזוז.');
+  if (MATRIX_PATH) {
+    out.push('**זמני הנסיעה כאן אמיתיים** — מטריצות מ-OpenRouteService על רשת');
+    out.push('הכבישים בפועל, לא מרחק אווירי. הן אף אינן סימטריות: הנסיעה');
+    out.push('מ-א׳ ל-ב׳ אינה בהכרח באורך הנסיעה חזרה, בגלל חד-סטריים.');
+    out.push('זו ההסתייגות הגדולה שהוסרה מהמדידה הקודמת.');
+  } else {
+    out.push('**זמני הנסיעה כאן הם מרחק אווירי כפול 1.3, לא ניתוב אמיתי.**');
+    out.push('קירוב אחיד אינו מתקן את הכשל האמיתי של מרחק אווירי: מסילה או');
+    out.push('כביש מהיר בין שתי נקודות ספציפיות. הגרסה עם זמנים אמיתיים היא');
+    out.push('`docs/baseline_real.md` — ראו אותה לפני שמצטטים מספר מכאן.');
+  }
   out.push('');
   out.push('**הביקוש מוגרל.** היעדים נדגמים אחידה מתוך כתובות אמיתיות');
   out.push('ברדיוס המסירה, מה שמייצר צפיפות נכונה — לכל בניין יש שורה,');
