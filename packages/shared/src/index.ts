@@ -1,5 +1,6 @@
 export * from './types';
 export * from './optimize';
+export * from './durationMatrix';
 export * from './labels';
 export * from './supabaseClient';
 export * from './Credits';

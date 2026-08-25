@@ -1,10 +1,16 @@
 import { useState } from 'react';
 import {
+  bestOrder,
+  getDurationMatrix,
   sortStops,
+  totalWait,
   translateDbError,
   DELIVERY_STATUS_LABELS,
   ROUTE_STATUS_LABELS,
+  type Business,
   type Delivery,
+  type MatrixSource,
+  type Point,
   type RouteWithStops,
 } from '@delivery/shared';
 import { supabase } from '../../lib/supabase';
@@ -19,17 +25,26 @@ import { supabase } from '../../lib/supabase';
 // שקורה. שני עותקים של אותו נתון היו מתפצלים, והכפתור "סגירת מסלול"
 // לא היה מופיע עד רענון ידני.
 
+interface OptimizeResult {
+  savedSeconds: number;
+  source: MatrixSource;
+  reason?: string;
+}
+
 export function RouteCard({
   route,
+  business,
   deliveries,
   onChanged,
 }: {
   route: RouteWithStops;
+  business: Business;
   deliveries: Delivery[];
   onChanged: () => void;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
+  const [optimized, setOptimized] = useState<OptimizeResult | null>(null);
 
   const live = new Map(deliveries.map((d) => [d.delivery_id, d]));
   const stops = sortStops(route.route_stops ?? []).map((stop) => ({
@@ -74,6 +89,93 @@ export function RouteCard({
         .eq('route_id', route.route_id)
         .eq('delivery_id', b.delivery_id);
     });
+  }
+
+  // ═══════════════ חישוב הסדר האופטימלי ═══════════════
+  // ממזער Σ(זמן הגעה − ready_at) — לא אורך מסלול. ראו optimize.ts.
+  //
+  // הכפתור הוא **הצעה על גבי סידור ידני שכבר עובד**, ולא תנאי לשיגור.
+  // אם הספק החיצוני נופל בשעת עומס, בעל העסק ממשיך כרגיל עם החיצים.
+  async function optimize() {
+    setError('');
+    setOptimized(null);
+
+    if (business.lat === null || business.lng === null) {
+      setError('למסעדה אין מיקום. קבעו אותו לפני חישוב מסלול.');
+      return;
+    }
+
+    // כתובת בלי נקודה אינה יכולה להיכנס לחישוב, ו**אסור** לדלג עליה
+    // בשקט — משלוח שנשמט מהסדר יגיע אחרון בפועל.
+    const missing = stops.filter((s) => s.deliveries?.lat == null);
+    if (missing.length > 0) {
+      setError(
+        `${missing.length} משלוחים בלי מיקום. נעצו אותם בלשונית המפה לפני החישוב.`
+      );
+      return;
+    }
+
+    setBusy(true);
+
+    const depot: Point = { lat: business.lat, lng: business.lng };
+    const points: Point[] = [
+      depot,
+      ...stops.map((s) => ({ lat: s.deliveries!.lat!, lng: s.deliveries!.lng! })),
+    ];
+
+    const { durations, source, reason } = await getDurationMatrix(supabase, points);
+
+    // כמה זמן כל מנה כבר המתינה. מנה בלי ready_at טרם יצאה מהמטבח,
+    // ולכן היא ממתינה אפס — לא שלילי.
+    const now = Date.now();
+    const readyOffsets = [
+      0,
+      ...stops.map((s) => {
+        const readyAt = s.deliveries?.ready_at;
+        return readyAt ? Math.max(0, (now - new Date(readyAt).getTime()) / 1000) : 0;
+      }),
+    ];
+
+    const current = stops.map((_, i) => i + 1);
+    const best = bestOrder(durations);
+    const saved =
+      totalWait(current, durations, readyOffsets) -
+      totalWait(best, durations, readyOffsets);
+
+    // כתיבה בשני שלבים. `sequence` אינו ייחודי בסכימה, אבל כתיבה
+    // ישירה על טווח חופף הופכת מצב ביניים לבלתי קריא אם משהו נכשל
+    // באמצע. סדר זמני גבוה מפנה את הטווח 1..n לגמרי.
+    const OFFSET = 1000;
+    for (let i = 0; i < best.length; i++) {
+      const stop = stops[best[i] - 1];
+      const first = await supabase
+        .from('route_stops')
+        .update({ sequence: OFFSET + i + 1 })
+        .eq('route_id', route.route_id)
+        .eq('delivery_id', stop.delivery_id);
+      if (first.error) {
+        setBusy(false);
+        setError(translateDbError(first.error));
+        return;
+      }
+    }
+    for (let i = 0; i < best.length; i++) {
+      const stop = stops[best[i] - 1];
+      const second = await supabase
+        .from('route_stops')
+        .update({ sequence: i + 1 })
+        .eq('route_id', route.route_id)
+        .eq('delivery_id', stop.delivery_id);
+      if (second.error) {
+        setBusy(false);
+        setError(translateDbError(second.error));
+        return;
+      }
+    }
+
+    setBusy(false);
+    setOptimized({ savedSeconds: saved, source, reason });
+    onChanged();
   }
 
   const send = () =>
@@ -166,7 +268,35 @@ export function RouteCard({
 
       {error && <p className="mt-2 text-sm text-danger">{error}</p>}
 
+      {optimized && (
+        <div className="mt-2 rounded-lg border border-border p-2 text-sm">
+          <p>
+            {optimized.savedSeconds >= 30
+              ? `הסדר עודכן. חיסכון משוער: ${Math.round(optimized.savedSeconds / 60)} דקות המתנה בסך הכל.`
+              : 'הסדר שהיה כבר היה הטוב ביותר — לא היה מה לשפר.'}
+          </p>
+          {/* הערכה שמוצגת כנתון אמיתי היא אותו כשל של קואורדינטה
+              שגויה בשקט. אם לא הגיע נתון נסיעה — אומרים את זה. */}
+          {optimized.source === 'estimate' && (
+            <p className="mt-1 text-text-muted">
+              {optimized.reason} החישוב התבסס על מרחק אווירי מוערך ולא על זמני נסיעה
+              אמיתיים.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="mt-3 flex gap-2">
+        {editable && stops.length > 1 && (
+          <button
+            onClick={optimize}
+            disabled={busy}
+            className="rounded-lg border border-primary px-4 py-2 text-sm text-primary hover:bg-primary hover:text-white disabled:opacity-50"
+          >
+            {busy ? 'מחשב...' : 'חשב סדר אופטימלי'}
+          </button>
+        )}
+
         {route.status === 'draft' && (
           <button
             onClick={send}
