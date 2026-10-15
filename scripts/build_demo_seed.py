@@ -176,7 +176,7 @@ def write_sql(fh, depot, picked):
 -- ונלקחו ממאגר הכתובות הפתוח, כדי שהמרחקים יהיו נכונים.
 --
 -- ── לפני ההרצה ──────────────────────────────────────────────────
--- 1. הירשמו דרך הדשבורד כעסק, ודרך אפליקציית השליח כשליח.
+-- 1. הירשמו באתר פעמיים: בכניסה לבעלי עסקים, ובכניסה לשליחים.
 -- 2. עדכנו את שני האימיילים בבלוק שלמטה.
 -- 3. הדביקו את כל הקובץ ל-SQL editor של Supabase והריצו.
 --
@@ -199,12 +199,12 @@ declare
 begin
   select id into v_biz_user from auth.users where email = v_biz_email;
   if v_biz_user is null then
-    raise exception 'לא נמצא משתמש עם האימייל %. הירשמו קודם דרך הדשבורד.', v_biz_email;
+    raise exception 'לא נמצא משתמש עם האימייל %. הירשמו קודם באתר, בכניסה לבעלי עסקים.', v_biz_email;
   end if;
 
   select id into v_courier from auth.users where email = v_courier_email;
   if v_courier is null then
-    raise exception 'לא נמצא שליח עם האימייל %. הירשמו קודם דרך אפליקציית השליח.', v_courier_email;
+    raise exception 'לא נמצא שליח עם האימייל %. הירשמו קודם באתר, בכניסה לשליחים.', v_courier_email;
   end if;
 
   select business_id into v_business from business_members where user_id = v_biz_user limit 1;

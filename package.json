@@ -7,10 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "dashboard": "npm run dev -w apps/dashboard",
-    "courier": "npm run dev -w apps/courier",
-    "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w apps/dashboard && npm run typecheck -w apps/courier",
-    "build": "npm run build -w apps/dashboard && npm run build -w apps/courier",
+    "dev": "npm run dev -w apps/web",
+    "typecheck": "npm run typecheck -w packages/shared && npm run typecheck -w apps/web",
+    "build": "npm run build -w apps/web",
     "seed": "python scripts/build_demo_seed.py",
     "test": "npm run test -w packages/shared",
     "batches": "python scripts/generate_batches.py",

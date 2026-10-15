@@ -14,15 +14,18 @@ Realtime), Leaflet. Hebrew RTL throughout.
 
 ## Live demo
 
-| | |
-|---|---|
-| **Owner dashboard** | https://maslul-dashboard.vercel.app |
-| **Courier app** (open on a phone) | https://maslul-courier.vercel.app |
+**https://maslul-dashboard.vercel.app** — one site. The first screen asks
+whether you run the business or deliver for it.
 
 ```
-dashboard   demo@maslul.local     / 123123
-courier     courier@maslul.local  / 123123
+business owner   demo@maslul.local     / 123123
+courier          courier@maslul.local  / 123123
 ```
+
+The courier side is built for a phone; [`/courier`](https://maslul-dashboard.vercel.app/courier)
+opens straight at its login. One browser holds one signed-in account, so to
+watch both sides at once — the owner dispatching, the courier receiving — open
+the courier side in a private window or on a phone.
 
 The demo is seeded with twelve deliveries, an active courier shift, and a route
 already in progress. **The customer names and phone numbers are fabricated. The
@@ -30,7 +33,7 @@ addresses are real** — they are drawn from the same open Israeli address datas
 the app itself searches, so the distances between points are genuine and the
 routing behaves the way it would in production.
 
-The interface is Hebrew and right-to-left. The screen names are: *deliveries*,
+The interface is Hebrew and right-to-left. The owner's screens are: *deliveries*,
 *map*, *routes*, *couriers*.
 
 ---
@@ -143,6 +146,13 @@ ordering depends on travel times alone.** `ready_at` is what makes the result
 
 ## Engineering decisions worth reading
 
+**One site, two doors — and the door is not the permission.** Owners and
+couriers sign in on the same site. The door you pick only decides which sign-up
+form you see; after login the role comes from the database (`me()`), so the
+wrong door still lands you on your own screen. Splitting the roles across two
+sites never protected anything — Row Level Security does. Each side is
+lazy-loaded, so a courier's phone never downloads Leaflet or the dashboard.
+
 **Authorisation lives in the database, not the client.** Row Level Security on
 every table. A courier cannot see a delivery until a route has been assigned to
 them and dispatched — the restaurant's customer list never leaks. There is no
@@ -197,9 +207,10 @@ a rewrite.
 ## Architecture
 
 ```
-Owner dashboard (React + Vite + Leaflet)      Courier PWA (React + Vite)
-                    │                                   │
-                    └──────── Supabase JS ──────────────┘
+             One web app (React + Vite) — two doors
+       owner: dashboard + Leaflet  ·  courier: phone view
+                                   │
+                              Supabase JS
                           (REST + Realtime WS)
                                    │
                     ┌──────────────▼──────────────┐
@@ -224,7 +235,7 @@ stack with it.
 | Backend | Supabase — Auth, Realtime, RLS |
 | Frontend | React 18, Vite, Tailwind |
 | Map | Leaflet + OpenStreetMap tiles (no `react-leaflet` — see below) |
-| Hosting | Vercel, two projects from one monorepo |
+| Hosting | Vercel — one site for both roles |
 
 `leaflet` directly rather than `react-leaflet`: a map, pins and a click handler
 do not justify a wrapper layer that is sensitive to React versions. Leaflet's
@@ -277,13 +288,12 @@ address and coordinates with them, and nothing is typed at all.
 
 ```bash
 npm install
-npm run dashboard     # http://localhost:5173
-npm run courier       # http://localhost:5174  (host: true, for phone testing)
+npm run dev           # http://localhost:5173  (host: true, for phone testing)
 npm run typecheck
 npm run build
 ```
 
-Each app needs a `.env` with `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+`apps/web/.env` needs `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
 Migrations in `supabase/migrations` are applied in order. `npm run seed`
 regenerates the demo dataset from the address data.
 
@@ -291,7 +301,7 @@ regenerates the demo dataset from the address data.
 |---|---|
 | `supabase/migrations/` | Schema and RLS — the source of truth |
 | `packages/shared/` | Types, hooks, auth, address search |
-| `apps/dashboard/` · `apps/courier/` | The two applications |
+| `apps/web/` | The site — owner dashboard and courier view behind one login |
 | `scripts/` | Address dataset preparation, demo seed generation |
 | `docs/deploy.md` | Deployment walkthrough |
 | `spec.md` · `CLAUDE.md` | Full technical spec and decision log (Hebrew) |

@@ -22,7 +22,7 @@ import type { Point } from '../packages/shared/src/optimize';
 
 const BATCHES_PATH = 'data/batches.json';
 const CACHE_PATH = 'data/matrices.json';
-const ENV_PATH = 'apps/dashboard/.env';
+const ENV_PATH = 'apps/web/.env';
 
 const LIMIT = Number(process.argv[2] ?? 150);
 

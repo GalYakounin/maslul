@@ -2,16 +2,10 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "dashboard",
+      "name": "web",
       "runtimeExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
-      "runtimeArgs": ["run", "dev", "-w", "apps/dashboard"],
+      "runtimeArgs": ["run", "dev", "-w", "apps/web"],
       "port": 5173
-    },
-    {
-      "name": "courier",
-      "runtimeExecutable": "C:\\Program Files\\nodejs\\npm.cmd",
-      "runtimeArgs": ["run", "dev", "-w", "apps/courier"],
-      "port": 5174
     }
   ]
 }

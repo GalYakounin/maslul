@@ -3,31 +3,33 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { Me } from './types';
 
 // עוטף את me() RPC — תפקיד + פרופיל בבקשה אחת בעליית האפליקציה.
-// enabled=false (למשל: אין session) לא שולח בקשה בכלל.
-export function useMe(supabase: SupabaseClient, enabled: boolean) {
-  const [me, setMe] = useState<Me | null>(null);
-  const [loading, setLoading] = useState(enabled);
+// userId ריק (אין session) לא שולח בקשה בכלל.
+//
+// התוצאה נשמרת יחד עם המשתמש שעבורו נטענה. כך ברגע ההתחברות, עוד לפני
+// שה-effect רץ, loading כבר true — אחרת לפריים אחד me=null נקרא כחשבון
+// בלי תפקיד, והמסך מהבהב בהודעת שגיאה לפני שהוא מגיע למקום הנכון.
+export function useMe(supabase: SupabaseClient, userId: string | undefined) {
+  const [result, setResult] = useState<{ userId: string; me: Me | null } | null>(null);
 
   useEffect(() => {
-    if (!enabled) {
-      setMe(null);
-      setLoading(false);
+    // ביציאה מנקים, כדי שהתחברות חוזרת תטען מחדש ולא תציג פרופיל ישן.
+    if (!userId) {
+      setResult(null);
       return;
     }
 
     let cancelled = false;
-    setLoading(true);
 
     supabase.rpc('me').then(({ data, error }) => {
       if (cancelled) return;
-      setMe(error ? null : (data as Me));
-      setLoading(false);
+      setResult({ userId, me: error ? null : (data as Me) });
     });
 
     return () => {
       cancelled = true;
     };
-  }, [supabase, enabled]);
+  }, [supabase, userId]);
 
-  return { me, loading };
+  const current = result && result.userId === userId ? result : null;
+  return { me: current?.me ?? null, loading: !!userId && !current };
 }

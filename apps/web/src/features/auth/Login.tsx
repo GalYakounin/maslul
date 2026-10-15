@@ -1,7 +1,23 @@
 import { useState, type FormEvent } from 'react';
 import { useAuth, translateAuthError } from '@delivery/shared';
+import type { Role } from './RoleChoice';
 
-export function Login({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
+const TITLES: Record<Role, string> = {
+  business: 'התחברות לבעלי עסקים',
+  courier: 'התחברות לשליחים',
+};
+
+// ההתחברות זהה לשני התפקידים — אימייל וסיסמה. role קובע רק את הכותרת;
+// לאן המשתמש מגיע אחרי ההתחברות נקבע מ-me(), לא מהדלת שבחר.
+export function Login({
+  role,
+  onSwitchToSignUp,
+  onBack,
+}: {
+  role: Role;
+  onSwitchToSignUp: () => void;
+  onBack: () => void;
+}) {
   const { signIn } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,7 +39,7 @@ export function Login({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
         onSubmit={handleSubmit}
         className="w-full max-w-sm space-y-4 rounded-xl bg-surface p-6 shadow"
       >
-        <h1 className="text-center text-xl font-bold">התחברות שליח</h1>
+        <h1 className="text-center text-xl font-bold">{TITLES[role]}</h1>
 
         <div className="space-y-1">
           <label className="block text-sm text-text-muted">אימייל</label>
@@ -59,6 +75,10 @@ export function Login({ onSwitchToSignUp }: { onSwitchToSignUp: () => void }) {
 
         <button type="button" onClick={onSwitchToSignUp} className="w-full text-sm text-secondary">
           עדיין אין לכם חשבון? הרשמה
+        </button>
+
+        <button type="button" onClick={onBack} className="w-full text-sm text-text-muted">
+          חזרה לבחירה בין עסק לשליח
         </button>
       </form>
     </div>

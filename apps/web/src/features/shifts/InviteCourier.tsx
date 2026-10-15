@@ -103,7 +103,7 @@ export function InviteCourier({
 
       {search.kind === 'none' && (
         <p className="mt-3 text-sm text-text-muted">
-          לא נמצא שליח עם המספר {search.phone}. ודאו שהשליח נרשם באפליקציית השליחים עם המספר הזה.
+          לא נמצא שליח עם המספר {search.phone}. ודאו שהשליח נרשם באתר כשליח, עם המספר הזה.
         </p>
       )}
 

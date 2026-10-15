@@ -83,7 +83,7 @@ export function translateDbError(error: unknown): string {
 }
 
 // ═══════════════ AuthProvider ═══════════════
-// כל אפליקציה מזריקה את הקליינט שלה (src/lib/supabase.ts) — הספרייה
+// האפליקציה מזריקה את הקליינט שלה (src/lib/supabase.ts) — הספרייה
 // המשותפת לא יוצרת קליינט בעצמה.
 interface AuthContextValue {
   session: Session | null;
